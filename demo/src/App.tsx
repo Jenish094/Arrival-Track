@@ -1,12 +1,5 @@
-import React from "react";
-import { ArrivalWidget } from "./components/ArrivalWidget";
+import ArrivalWidget from "./components/ArrivalWidget";
 
-function App() {
-  return (
-    <div>
-      <ArrivalWidget />
-    </div>
-  );
+export default function App() {
+  return <ArrivalWidget />;
 }
-
-export default App;
