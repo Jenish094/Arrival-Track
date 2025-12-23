@@ -1,0 +1,2 @@
+This is just the demo, it doesn't touch the engine at all. This demo just uses a setlist and does the maths itself. This demo is deployed at https://jenish094.github.io/arrival-track/
+This is just demonstration of the actual app. The release of the app will use Spotify API's to fetch from the user's queue and is found in .ipa and .apk in releases.

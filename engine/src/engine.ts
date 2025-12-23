@@ -1,43 +1,43 @@
 // Engine
 
 export interface Track {
-    title: string;
-    durationSeconds: number;
+  title: string;
+  durationSeconds: number;
 }
 
 export interface ArrivalResult {
-    track: Track;
-    offsetSeconds: number;
+  track: Track;
+  offsetSeconds: number;
 }
 
 export function calculateArrivalTrack(
-    currentTrack: Track,
-    currentTrackPositionSeconds: number,
-    queue: Track[],
-    etaSeconds: number ): ArrivalResult {
-        let remainingTime = etaSeconds;
-        const currentRemaining = currentTrack.durationSeconds = currentTrackPositionSeconds;
-        if (remainingTime < currentRemaining) {
-            return {
-                track: currentTrack,
-                offsetSeconds: currentTrackPositionSeconds + remainingTime
-            };
-            }
-            remainingTime -= currentRemaining;
+  currentTrack: Track,
+  currentPosition: number,
+  queue: Track[],
+  etaSeconds: number
+): ArrivalResult {
+  let remainingTime = etaSeconds;
+  let offset: number;
 
-            for (const track of queue) {
-                if (remainingTime < track.durationSeconds) {
-                    return {
-                        track,
-                        offsetSeconds: remainingTime
-                    };
-                }
-                remainingTime -= track.durationSeconds;
-                }
 
-                const lastTtrack = queue[queue.length - 1];
-                return {
-                    track: lastTtrack,
-                    offsetSeconds: lastTtrack.durationSeconds
-                };
-            }
+  const currentRemaining = currentTrack.durationSeconds - currentPosition;
+
+  if (remainingTime < currentRemaining) {
+    offset = currentPosition + remainingTime;
+    return { track: currentTrack, offsetSeconds: offset };
+  }
+
+  remainingTime -= currentRemaining;
+
+  for (const track of queue) {
+    if (remainingTime < track.durationSeconds) {
+      offset = remainingTime;
+      return { track, offsetSeconds: offset };
+    }
+    remainingTime -= track.durationSeconds;
+  }
+
+  // return last track if eta exceeds the length of the qeueue
+  const lastTrack = queue[queue.length - 1] || currentTrack;
+  return { track: lastTrack, offsetSeconds: lastTrack.durationSeconds };
+}
