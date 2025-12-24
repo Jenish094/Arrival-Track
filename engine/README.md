@@ -1,0 +1,1 @@
+im not gonna lie this engine is compeltely useless, i thought about using it but its really like 100 lines of random half-assed code. I just remade it better in kotlin and swift
