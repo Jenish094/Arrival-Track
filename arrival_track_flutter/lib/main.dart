@@ -4,7 +4,12 @@ import 'screens/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: Could not load .env file: $e');
+    // Continue anyway - API keys may be provided via other means
+  }
   runApp(const ArrivalTrackApp());
 }
 
