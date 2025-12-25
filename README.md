@@ -8,7 +8,6 @@ Arrival Track is an iOS/Android app that calculates which song in your Spotify q
    - 2.1 [Using Prebuilt Packages](#using-prebuilt-packages-recommended)
    - 2.2 [Building from Source](#building-from-source)
 3. [Usage](#usage)
-4. [License](#license)
 
 
 ## How It Works
@@ -147,12 +146,6 @@ You'll need to obtain your own API keys for the following services:
    - Your calculated ETA
    - The song that will be playing when you arrive
 
-
-## License
-
-This project is licensed under the GNU GENERAL PUBLIC LICENSE - see the [LICENSE](LICENSE) file for details.
-
----
 
 ## Acknowledgments
 

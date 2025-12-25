@@ -7,10 +7,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/track.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+//genuienly the worst part of this entire project
+// I did use AI for some parts of this (VSCode Copilot)
 class SpotifyService {
   static String? _accessToken;
   static String? _refreshToken;
-  static String? _codeVerifier; // for PKCE
+  static String? _codeVerifier;
   static final String _clientId = dotenv.env['SPOTIFY_CLIENT_ID'] ?? '';
   static final String _redirectUri = dotenv.env['SPOTIFY_REDIRECT_URI'] ?? '';
   static const String _scopes = 'user-read-private user-read-email user-read-currently-playing user-read-playback-state';
@@ -69,7 +71,6 @@ class SpotifyService {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
         print('SpotifyService: canLaunchUrl returned false, trying platformDefault mode');
-        // Fallback to platform default if external app not available
         final launched = await launchUrl(url, mode: LaunchMode.platformDefault);
         if (!launched) {
           print('SpotifyService: platformDefault also failed');
@@ -127,6 +128,39 @@ class SpotifyService {
     }
   }
 
+  static Future<bool> _refreshAccessToken() async {
+    if (_refreshToken == null || _clientId.isEmpty) {
+      print('SpotifyService: No refresh token or clientId to refresh');
+      return false;
+    }
+    try {
+      final response = await http.post(
+        Uri.parse('https://accounts.spotify.com/api/token'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'client_id': _clientId,
+          'grant_type': 'refresh_token',
+          'refresh_token': _refreshToken!,
+        },
+      ).timeout(const Duration(seconds: 15));
+      print('SpotifyService: Refresh token response: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final access = data['access_token'] as String;
+        // Some responses may include a new refresh token
+        final refresh = data['refresh_token'] as String?;
+        await _saveTokens(access, refresh);
+        return true;
+      } else {
+        print('SpotifyService: Refresh failed: ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('SpotifyService: Error refreshing token: $e');
+      return false;
+    }
+  }
+
   static Future<({Track? current, List<Track> queue})> fetchSnapshot() async {
     if (_accessToken == null) {
       print('No access token available');
@@ -137,8 +171,42 @@ class SpotifyService {
       // Fetch current track
       final currentResponse = await http.get(
         Uri.parse('https://api.spotify.com/v1/me/player/currently-playing'),
-        headers: {'Authorisation': 'Bearer $_accessToken'},
+        headers: {'Authorization': 'Bearer $_accessToken'},
       );
+
+      if (currentResponse.statusCode == 401) {
+        final refreshed = await _refreshAccessToken();
+        if (!refreshed) {
+          return (current: null, queue: <Track>[]);
+        }
+        final retryCurrent = await http.get(
+          Uri.parse('https://api.spotify.com/v1/me/player/currently-playing'),
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        );
+        final currentResponseParsed = retryCurrent;
+        Track? currentTrack;
+        if (currentResponseParsed.statusCode == 200 && currentResponseParsed.body.isNotEmpty) {
+          final currentJson = json.decode(currentResponseParsed.body);
+          if (currentJson['item'] != null) {
+            currentTrack = Track.fromJson(currentJson['item']);
+          }
+        }
+        final queueResponse = await http.get(
+          Uri.parse('https://api.spotify.com/v1/me/player/queue'),
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        );
+        List<Track> queue = [];
+        if (queueResponse.statusCode == 200) {
+          final queueJson = json.decode(queueResponse.body);
+          if (queueJson['queue'] != null) {
+            queue = (queueJson['queue'] as List)
+                .take(50)
+                .map((item) => Track.fromJson(item))
+                .toList();
+          }
+        }
+        return (current: currentTrack, queue: queue);
+      }
 
       Track? currentTrack;
       if (currentResponse.statusCode == 200 && currentResponse.body.isNotEmpty) {
@@ -148,10 +216,9 @@ class SpotifyService {
         }
       }
 
-      // Fetch queue
       final queueResponse = await http.get(
         Uri.parse('https://api.spotify.com/v1/me/player/queue'),
-        headers: {'Authorisation': 'Bearer $_accessToken'},
+        headers: {'Authorization': 'Bearer $_accessToken'},
       );
 
       List<Track> queue = [];

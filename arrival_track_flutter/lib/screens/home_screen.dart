@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-// import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _requestPermissions() async {
     await Permission.location.request();
-    // Skip overlay permission
+    await Permission.systemAlertWindow.request();
   }
 
   void _onDestinationChanged() {
@@ -146,12 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
         const SnackBar(content: Text('Please select a destination')),
       );
       return;
-    }
-
-    // open goggletown maps
-    final mapsUrl = Uri.parse('geo:0,0?q=${Uri.encodeComponent(destination)}');
-    if (await canLaunchUrl(mapsUrl)) {
-      await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
     }
 
     setState(() {
@@ -219,41 +213,44 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final songsBetween = snapshot.queue.takeWhile((t) => t.id != result.track.id).length;
 
-      //results
+      //open goggletown maps
+      final mapsUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}&travelmode=driving');
+      if (await canLaunchUrl(mapsUrl)) {
+        await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
+      }
+
+      //check perms
+      try {
+        final granted = await FlutterOverlayWindow.isPermissionGranted();
+        if (!granted) {
+          await FlutterOverlayWindow.requestPermission();
+        }
+
+        await FlutterOverlayWindow.showOverlay(
+          height: 220,
+          width: WindowSize.matchParent,
+          alignment: OverlayAlignment.topCenter,
+          enableDrag: true,
+          overlayTitle: 'ArrivalTrack',
+        );
+      } catch (e) {
+        print('HomeScreen: Failed to show overlay: $e');
+      }
+
+      //send data to voverlay
+      try {
+        await FlutterOverlayWindow.shareData({
+        'currentTrack': snapshot.current!.title,
+        'arrivalTrack': result.track.title,
+        'songsUntilArrival': songsBetween,
+        });
+      } catch (e) {
+        print('HomeScreen: Failed to share data to overlay: $e');
+      }
+
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('ArrivalTrack'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Now Playing:', style: Theme.of(context).textTheme.titleSmall),
-                Text(snapshot.current!.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                Center(
-                  child: Column(
-                    children: [
-                      Text('$songsBetween',
-                          style: const TextStyle(fontSize: 32, color: Color(0xFFFFD700), fontWeight: FontWeight.bold)),
-                      const Text('songs until arrival', style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text("You'll arrive to:", style: Theme.of(context).textTheme.titleSmall),
-                Text(result.track.title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFFD700))),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Got it!'),
-              ),
-            ],
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Overlay shown! Opening Google Maps...')),
         );
       }
     } catch (e) {
