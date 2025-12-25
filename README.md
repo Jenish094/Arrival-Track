@@ -157,5 +157,5 @@ You'll need to obtain your own API keys for the following services:
 ---
 
 ## IMAGE
-![image](Screenshot 2025-12-26 001454.png)
+![image](Screenshot%202025-12-26%20001454.png)
 
