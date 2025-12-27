@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.jenish094.arrivaltrack"
-       minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

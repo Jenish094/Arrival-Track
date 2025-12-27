@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'package:app_links/app_links.dart';
@@ -64,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print('HomeScreen: Got initial link: $initial');
       _handleIncomingLink(initial);
     }
+    
     // 67
     _linkSub = _appLinks.uriLinkStream.listen(
       (uri) {
@@ -105,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _requestPermissions() async {
     await Permission.location.request();
-    await Permission.systemAlertWindow.request();
   }
 
   void _onDestinationChanged() {
@@ -213,44 +212,117 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final songsBetween = snapshot.queue.takeWhile((t) => t.id != result.track.id).length;
 
-      //open goggletown maps
+      //open google maps
       final mapsUrl = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=${Uri.encodeComponent(destination)}&travelmode=driving');
       if (await canLaunchUrl(mapsUrl)) {
         await launchUrl(mapsUrl, mode: LaunchMode.externalApplication);
       }
 
-      //check perms
-      try {
-        final granted = await FlutterOverlayWindow.isPermissionGranted();
-        if (!granted) {
-          await FlutterOverlayWindow.requestPermission();
-        }
-
-        await FlutterOverlayWindow.showOverlay(
-          height: 220,
-          width: WindowSize.matchParent,
-          alignment: OverlayAlignment.topCenter,
-          enableDrag: true,
-          overlayTitle: 'ArrivalTrack',
-        );
-      } catch (e) {
-        print('HomeScreen: Failed to show overlay: $e');
-      }
-
-      //send data to voverlay
-      try {
-        await FlutterOverlayWindow.shareData({
-        'currentTrack': snapshot.current!.title,
-        'arrivalTrack': result.track.title,
-        'songsUntilArrival': songsBetween,
-        });
-      } catch (e) {
-        print('HomeScreen: Failed to share data to overlay: $e');
-      }
-
+      // show popup dialog in the center of the app
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Overlay shown! Opening Google Maps...')),
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.black.withOpacity(0.9),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Color(0xFF1DB954), width: 2),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'ArrivalTrack',
+                        style: TextStyle(
+                          color: Color(0xFF1DB954),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (snapshot.current!.title.isNotEmpty) ...[
+                    const Text(
+                      'Now Playing:',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      snapshot.current!.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          '$songsBetween',
+                          style: const TextStyle(
+                            fontSize: 48,
+                            color: Color(0xFFFFD700),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          'songs until arrival',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (result.track.title.isNotEmpty) ...[
+                    const Text(
+                      "You'll arrive to:",
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    Text(
+                      result.track.title,
+                      style: const TextStyle(
+                        color: Color(0xFFFFD700),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1DB954),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Got it'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       }
     } catch (e) {

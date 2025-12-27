@@ -147,7 +147,6 @@ class SpotifyService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final access = data['access_token'] as String;
-        // Some responses may include a new refresh token
         final refresh = data['refresh_token'] as String?;
         await _saveTokens(access, refresh);
         return true;
@@ -168,7 +167,6 @@ class SpotifyService {
     }
 
     try {
-      // Fetch current track
       final currentResponse = await http.get(
         Uri.parse('https://api.spotify.com/v1/me/player/currently-playing'),
         headers: {'Authorization': 'Bearer $_accessToken'},

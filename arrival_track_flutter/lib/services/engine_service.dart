@@ -28,8 +28,6 @@ class EngineService {
       }
       remainingTime -= track.durationSeconds;
     }
-
-    // If we run out of tracks, return the last track in queue
     return ArrivalResult(
       track: queue.isNotEmpty ? queue.last : currentTrack,
       offsetSeconds: queue.isNotEmpty ? queue.last.durationSeconds : currentTrack.durationSeconds,
