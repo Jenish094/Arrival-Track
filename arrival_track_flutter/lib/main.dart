@@ -1,28 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'screens/home_screen.dart';
-import 'overlay_entry.dart';
 
-@pragma("vm:entry-point")
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    print('Warning: Could not load .env file: $e');
-  }
+  await dotenv.load(fileName: ".env");
   runApp(const ArrivalTrackApp());
-}
-@pragma("vm:entry-point")
-void overlayMain() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: OverlayWidget(),
-    ),
-  );
 }
 
 class ArrivalTrackApp extends StatelessWidget {
